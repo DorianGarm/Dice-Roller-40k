@@ -88,14 +88,14 @@ const updateUI = function (param) {
     avgText("Saves");
   }
   param.innerHTML = `<p>
-  ${data[1]}x <img src="dice-1.png" class="dice" /> ${data[2]}x
-  <img src="dice-2.png" class="dice" /> ${data[3]}x
-  <img src="dice-3.png" class="dice" />
+  ${data[1]}x <img src="img/dice-1.png" class="dice" /> ${data[2]}x
+  <img src="img/dice-2.png" class="dice" /> ${data[3]}x
+  <img src="img/dice-3.png" class="dice" />
   </p>
   <p>
-  ${data[4]}x <img src="dice-4.png" class="dice" /> ${data[5]}x
-  <img src="dice-5.png" class="dice" /> ${data[6]}x
-  <img src="dice-6.png" class="dice" />
+  ${data[4]}x <img src="img/dice-4.png" class="dice" /> ${data[5]}x
+  <img src="img/dice-5.png" class="dice" /> ${data[6]}x
+  <img src="img/dice-6.png" class="dice" />
   </p>`;
 };
 
