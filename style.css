@@ -10,7 +10,7 @@
 
 body {
   background-image: linear-gradient(rgba(83, 83, 83, 0.4), rgba(0, 0, 0, 0.4)),
-    url(back.jpg);
+    url(img/back.jpg);
   background-size: cover;
   background-position: center;
   font-family: Lato;
