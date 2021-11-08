@@ -171,6 +171,9 @@ const reRoll1 = function (param) {
     tempWoundData = tempWoundData.SumArray(rolls);
     updateUI(WoundDice);
   }
+
+  // Reroll 1s to save functionality, if needed:
+
   // if (param === "Save") {
   //   const ones = tempSaveData[1];
   //   tempSaveData[1] = 0;
@@ -204,6 +207,9 @@ const reRollA = function (param) {
     tempWoundData = tempWoundData.SumArray(newRolls);
     updateUI(WoundDice);
   }
+
+  // Reroll all to save functionality, if needed:
+
   // if (param === "Save") {
   //   newRolls = roller(tempSaveCount[1]);
   //   tempSaveCount[1] = 0;
