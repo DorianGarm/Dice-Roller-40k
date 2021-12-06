@@ -1,0 +1,34 @@
+{
+  "name": "dice-roller-40k",
+  "version": "1.0.0",
+  "description": "A simple app that automates the dice rolling in 9th ed. Warhammer 40,000. Uses a 3 stage filter: to hit, to wound, to save, together with the ability to reroll. Instructions are provided when clicking the question mark in the top right corner.",
+  "source": "index.html",
+  "staticFiles": {
+    "staticPath": "img"
+  },
+  "parcelIgnore": [
+    "img/.*"
+  ],
+  "scripts": {
+    "start": "mkdir dist; cp -R img dist/img && parcel",
+    "build": "parcel build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DorianGarm/Dice-Roller-40k.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DorianGarm/Dice-Roller-40k/issues"
+  },
+  "homepage": "https://github.com/DorianGarm/Dice-Roller-40k#readme",
+  "devDependencies": {
+    "parcel": "^2.0.1",
+    "parcel-plugin-static-files-copy": "^2.6.0",
+    "parcel-resolver-ignore": "^2.0.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}
