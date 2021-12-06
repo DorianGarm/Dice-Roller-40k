@@ -1,3 +1,5 @@
+import * as _ from 'lodash';
+
 // ------------------------ Selectors ------------------------
 
 const rollHitBtn = document.getElementById("roll-hit");
@@ -24,82 +26,23 @@ const fnp5Btn = document.getElementById("fnp5-btn");
 const fnp6Btn = document.getElementById("fnp6-btn");
 const fnpText = document.getElementById("fnp-text");
 
-// ------------------------ Temporary data block ------------------------
+// Te funkcje nie zależą od stanu aplikacji, można je spokojnie przenieść do innego pliku
+function dice() {
+  return Math.floor(Math.random() * 6) + 1;
+}
 
-let tempHitData,
-  tempWoundData,
-  tempSaveData,
-  tempHitCount,
-  tempWoundCount,
-  tempSaveCount;
-
-// ------------------------ Roll Functionality ------------------------
-
-const roll = function (param) {
-  expected();
-  if (param === "Hit") {
-    if (!inputToHit.value) return;
-    tempHitData = roller(inputAttacks.value);
-    updateUI(HitDice);
-  }
-  if (param === "Wound") {
-    if (!inputToWound.value) return;
-    tempWoundData = roller(tempHitCount[0]);
-    updateUI(WoundDice);
-  }
-  if (param === "Save") {
-    if (!inputToSave.value) return;
-    tempSaveData = roller(tempWoundCount[0]);
-    updateUI(SaveDice);
-  }
-};
-
-const roller = function (num) {
+function roller(num) {
   let data = [0, 0, 0, 0, 0, 0, 0];
   for (let i = 1; i <= num; i++) {
     let result = dice();
     let newData = data[result] + 1;
     data[result] = newData;
   }
+
   return data;
-};
+}
 
-const dice = function () {
-  return Math.floor(Math.random() * 6) + 1;
-};
-
-const updateUI = function (param) {
-  if (param === HitDice) {
-    data = tempHitData;
-    tempHitCount = counter(tempHitData, inputToHit.value);
-    succesfulHitBox.textContent = tempHitCount[0];
-    avgText("Hits");
-  }
-  if (param === WoundDice) {
-    data = tempWoundData;
-    tempWoundCount = counter(tempWoundData, inputToWound.value);
-    succesfulWoundBox.textContent = tempWoundCount[0];
-    avgText("Wounds");
-  }
-  if (param === SaveDice) {
-    data = tempSaveData;
-    tempSaveCount = counter(tempSaveData, inputToSave.value);
-    failedSaveBox.textContent = tempSaveCount[1];
-    avgText("Saves");
-  }
-  param.innerHTML = `<p>
-  ${data[1]}x <img src="img/dice-1.png" class="dice" /> ${data[2]}x
-  <img src="img/dice-2.png" class="dice" /> ${data[3]}x
-  <img src="img/dice-3.png" class="dice" />
-  </p>
-  <p>
-  ${data[4]}x <img src="img/dice-4.png" class="dice" /> ${data[5]}x
-  <img src="img/dice-5.png" class="dice" /> ${data[6]}x
-  <img src="img/dice-6.png" class="dice" />
-  </p>`;
-};
-
-const counter = function (data, threshold) {
+function counter(data, threshold) {
   let successCount = data.slice(threshold);
   let failCount = data.slice(0, threshold);
   let sCount = 0;
@@ -111,23 +54,100 @@ const counter = function (data, threshold) {
     fCount += failCount[i];
   }
   return [sCount, fCount];
+}
+
+// -------------------------------------
+
+class DiceStats {
+  constructor(uiInputElement, uiOutputElement, rollerValue = () => 0) {
+    this.data = new Array(6).fill(0);
+    this.count = new Array(6).fill(0);
+    this.rollerValue = rollerValue;
+    this.uiInputElement = uiInputElement;
+    this.uiOutputElement = uiOutputElement;
+  }
+
+  roll() {
+    if (this.uiInputElement.value) {
+
+      this.data = roller(this.rollerValue());
+      this.count = counter(this.data, this.uiInputElement.value);
+
+      return true;
+    }
+
+    return false;
+  }
+}
+
+// ------------------------ Temporary data block ------------------------
+
+const DICES = {
+ Hit: 'Hit',
+ Wound: 'Wound',
+ Save: 'Save'
 };
 
-const avgText = function (param) {
-  const data = expected();
-  if (param === "Hits") {
-    const differnce = tempHitCount[0] - data[0];
-    differnceText(differnce, avgHits);
-  }
-  if (param === "Wounds") {
-    const differnce = tempWoundCount[0] - data[1];
-    differnceText(differnce, avgWounds);
-  }
-  if (param === "Saves") {
-    const differnce = -1 * (data[2] - tempSaveCount[1]);
-    differnceText(differnce, avgSaves);
-  }
+/* Dodatkowy trick, żeby nie dało się zmodyfikować tego obiektu podczas wykonania programu */
+Object.freeze(DICES);
+
+/* Nie wiem czy znasz już arrow function syntax? '() => cos' */
+const DICES_STATS = {
+  [DICES.Hit]: new DiceStats(inputToHit, HitDice, () => inputAttacks.value),
+  [DICES.Wound]: new DiceStats(inputToWound, WoundDice, () => DICES_STATS['Hit'].count[0]),
+  [DICES.Save]: new DiceStats(inputToSave, SaveDice, () => DICES_STATS['Wound'].count[0])
 };
+
+// ------------------------ Roll Functionality ------------------------
+
+function roll(param) {
+  /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  --expected()--
+  Nie wiem czy dobrze rozumiem, ale ten call do 'expected' chyba nie jest potrzebny,
+  bo expected chyba nie modyfikuje stanu aplikacji */
+
+  const diceStats = DICES_STATS[param]
+
+  if (diceStats.roll()) {
+    updateUI(param, diceStats)
+  }
+}
+
+
+function updateUI(param, diceStats) {
+  const data = diceStats.data;
+  const count = diceStats.count;
+  const expect = expected();
+
+  switch (param) {
+    case DICES.Hit: {
+      succesfulHitBox.textContent = count[0];
+      differnceText(count[0] - expect[0], avgHits);
+      break;
+    }
+    case DICES.Wound: {
+      succesfulWoundBox.textContent = diceStats.count[0];
+      differnceText(count[0] - expect[1], avgWounds);
+      break;
+    }
+    case DICES.Save: {
+      failedSaveBox.textContent = diceStats.count[1];
+      differnceText( -(expect[2] - count[1]), avgSaves);
+      break;
+    }
+  }
+
+  diceStats.uiOutputElement.innerHTML = `<p>
+    ${data[1]}x <img src="img/dice-1.png" class="dice" /> ${data[2]}x
+    <img src="img/dice-2.png" class="dice" /> ${data[3]}x
+    <img src="img/dice-3.png" class="dice" />
+    </p>
+    <p>
+    ${data[4]}x <img src="img/dice-4.png" class="dice" /> ${data[5]}x
+    <img src="img/dice-5.png" class="dice" /> ${data[6]}x
+    <img src="img/dice-6.png" class="dice" />
+    </p>`;
+}
 
 const expected = function () {
   const expectedHits = Math.round(
@@ -158,110 +178,136 @@ const differnceText = function (param, type) {
 // ------------------------ Re-Roll 1s functionality ------------------------
 
 const reRoll1 = function (param) {
-  if (param === "Hit") {
-    newRolls = roller(tempHitData[1]);
-    tempHitData[1] = 0;
-    tempHitData = tempHitData.SumArray(newRolls);
-    updateUI(HitDice);
-  }
-  if (param === "Wound") {
-    const ones = tempWoundData[1];
-    tempWoundData[1] = 0;
-    rolls = roller(ones);
-    tempWoundData = tempWoundData.SumArray(rolls);
-    updateUI(WoundDice);
-  }
+  const diceStats = DICES_STATS[param];
+  const { data } = diceStats;
+  const newRolls = roller(data[1]);
 
-  // Reroll 1s to save functionality, if needed:
+  data[1] = 0;
+  diceStats.data = sumArray2(data, newRolls);
 
-  // if (param === "Save") {
-  //   const ones = tempSaveData[1];
-  //   tempSaveData[1] = 0;
-  //   rolls = roller(ones);
-  //   tempSaveData = tempSaveData.SumArray(rolls);
-  //   updateUI(SaveDice);
-  // }
+  updateUI(param, diceStats);
 };
 
-Array.prototype.SumArray = function (arr) {
-  var sum = this.map(function (num, idx) {
-    return num + arr[idx];
-  });
-  return sum;
-};
+/*
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Tak się raczej już nie robi, bo zmieniasz prototyp klasy Array dla całej aplikacji.
+Jakbyś zrobił oddzielną metodę SumArray(arr1, arr2) to byłoby równie dobre.
+Jeśli modyfikowałoby to w jakiś sposób `this` np. `this[0] = 666`, to miałoby jeszcze jakiś sens.
+Jest dużo metod, którymi możesz osiągnąć ten sam efekt
+ */
+// Array.prototype.SumArray = function (arr) {
+//   var sum = this.map(function (num, idx) {
+//     return num + arr[idx];
+//   });
+//   return sum;
+// };
+/*
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Jest dużo metod, którymi możesz osiągnąć ten sam efekt,
+dla przykładu
+ */
+
+function sumArray(arr1, arr2) {
+  let sum = 0;
+
+  //Dodatkowo sprawdzenie Math.min, ponieważ jeśli array byłyby różnej długości, to by poleciał Exception
+  for (let i = 0; i < Math.min(arr1.length, arr2.length); i++) {
+    sum += arr1[i] + arr2[i];
+  }
+
+  return sum
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Popularną libką do operacji na obiektach i tablicach jest lodash
+ */
+
+function sumArray2(arr1, arr2) {
+  // jeśli masz kilka arrayów, np. [1,2,3],['a','b','c'] to efektem zip jest [[1,'a'],[2,'b'],[3,'c']]
+  // z kolei sum, to po prostu suma elementów tablicy, czyli _.sum([1,2,3]) = 1 + 2 + 3 = 6
+  // Nie trzeba robić dodatkowych testów, wyniki będzie miał zawsze tyle elementów, co mniejsza tablica
+  return _.zip(arr1, arr2).map(_.sum)
+}
 
 // ------------------------ Re-Roll all fails functionality ------------------------
 
 const reRollA = function (param) {
-  if (param === "Hit") {
-    newRolls = roller(tempHitCount[1]);
-    tempHitCount[1] = 0;
-    dataCleanUp(inputToHit, tempHitData);
-    tempHitData = tempHitData.SumArray(newRolls);
-    updateUI(HitDice);
-  }
-  if (param === "Wound") {
-    newRolls = roller(tempWoundCount[1]);
-    tempWoundCount[1] = 0;
-    dataCleanUp(inputToWound, tempWoundData);
-    tempWoundData = tempWoundData.SumArray(newRolls);
-    updateUI(WoundDice);
-  }
+  const diceStats = DICES_STATS[param];
+  /* Możesz sobie wybrać pola, które Cię interesują za jednym razem */
+  const {count, data, uiInputElement} = diceStats;
+  const newRolls = roller(count[1]);
 
-  // Reroll all to save functionality, if needed:
+  count[1] = 0
+  dataCleanUp(uiInputElement, data);
+  diceStats.data = sumArray2(data, newRolls);
+  /*
+    tutaj jest problem, bo 'data' jest referencją do pola w obiekcie i 'data = sumArray2(tempHitData, newRolls)'
+    nie zmieniłoby 'data' wewnątrz 'diceStats', ewentualnie zadziałałoby
+    'data.splice(0, Infinity, ...sumArray2(data, newRolls))'
+  */
 
-  // if (param === "Save") {
-  //   newRolls = roller(tempSaveCount[1]);
-  //   tempSaveCount[1] = 0;
-  //   dataCleanUp(inputToSave, tempSaveData);
-  //   tempSaveData = tempSaveData.SumArray(newRolls);
-  //   updateUI(SaveDice);
-  // }
+  updateUI(param, diceStats);
 };
 
-const dataCleanUp = function (num, data) {
-  for (let i = 0; i < num.value; i++) {
-    data[i] = 0;
-  }
-};
+/*
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Istnieje funkcja array.fill(element, start, koniec), która wypełnia elementy tablicy
+ I jeszcze pytanie, czemu 'const dataCleanUp = function...', a nie 'function dataCleanUp(...'
+*/
+// const dataCleanUp = function (num, data) {
+//   for (let i = 0; i < num.value; i++) {
+//     data[i] = 0;
+//   }
+// };
+
+function dataCleanUp(num, data) {
+  data.fill(0, 0, num.value);
+}
 
 // ------------------------ 5+++ FNP functionality ------------------------
 
 const FNP = function (val) {
-  const tempFNPData = roller(tempSaveCount[1]);
+  const { count } = DICES_STATS[DICES.Save]
+  const tempFNPData = roller(count[1]);
   console.log("FNP rolls:" + tempFNPData);
   const tempFNPCount = counter(tempFNPData, val);
   fnpText.textContent = `${tempFNPCount[1]} DMG goes through`;
 };
 
 // ------------------------ Event handlers ------------------------
+/*
+Używaj jak najmniej hardcoded strings, jeśli będziesz coś zmieniał, to będziesz musiał latać po całej aplikacji
+Podpinanie event handlerów możesz faktycznie przenieść do innego pliku
+*/
+const CLICK = 'click';
 
-rollHitBtn.addEventListener("click", function () {
-  roll("Hit");
+rollHitBtn.addEventListener(CLICK, function () {
+  roll(DICES.Hit);
 });
-rollWndBtn.addEventListener("click", function () {
-  roll("Wound");
+rollWndBtn.addEventListener(CLICK, function () {
+  roll(DICES.Wound);
 });
-rollSaveBtn.addEventListener("click", function () {
-  roll("Save");
+rollSaveBtn.addEventListener(CLICK, function () {
+  roll(DICES.Save);
 });
-rr1hBtn.addEventListener("click", function () {
-  reRoll1("Hit");
+rr1hBtn.addEventListener(CLICK, function () {
+  reRoll1(DICES.Hit);
 });
-rr1wBtn.addEventListener("click", function () {
-  reRoll1("Wound");
+rr1wBtn.addEventListener(CLICK, function () {
+  reRoll1(DICES.Wound);
 });
-fnp5Btn.addEventListener("click", function () {
+fnp5Btn.addEventListener(CLICK, function () {
   FNP(5);
 });
-fnp6Btn.addEventListener("click", function () {
+fnp6Btn.addEventListener(CLICK, function () {
   FNP(6);
 });
-rrAhBtn.addEventListener("click", function () {
-  reRollA("Hit");
+rrAhBtn.addEventListener(CLICK, function () {
+  reRollA(DICES.Hit);
 });
-rrAwBtn.addEventListener("click", function () {
-  reRollA("Wound");
+rrAwBtn.addEventListener(CLICK, function () {
+  reRollA(DICES.Wound);
 });
 
 // ------------------------ Modal button functionality ------------------------
@@ -271,8 +317,8 @@ const overlay = document.querySelector(".overlay");
 const btnCloseModal = document.querySelector(".close-modal");
 const btnOpenModal = document.getElementById("help");
 
-btnOpenModal.addEventListener("click", clickHandlerOpen);
-overlay.addEventListener("click", clickHandlerClose);
+btnOpenModal.addEventListener(CLICK, clickHandlerOpen);
+overlay.addEventListener(CLICK, clickHandlerClose);
 
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape" && !modal.classList.contains("hidden")) {
