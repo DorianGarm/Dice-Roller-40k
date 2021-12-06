@@ -1,30 +1,15 @@
 import * as _ from 'lodash';
+import {
+  avgHits,
+  avgSaves,
+  avgWounds,
+  failedSaveBox, fnpText,
+  HitDice, inputAttacks,
+  inputToHit, inputToSave, inputToWound, SaveDice,
+  succesfulHitBox,
+  succesfulWoundBox, WoundDice
+} from './selectors';
 
-// ------------------------ Selectors ------------------------
-
-const rollHitBtn = document.getElementById("roll-hit");
-const rollWndBtn = document.getElementById("roll-wnd");
-const rollSaveBtn = document.getElementById("roll-save");
-const inputAttacks = document.getElementById("attack-box");
-const inputToHit = document.getElementById("to-hit-box");
-const inputToWound = document.getElementById("to-wound-box");
-const inputToSave = document.getElementById("to-save-box");
-const succesfulHitBox = document.getElementById("successful-hits");
-const succesfulWoundBox = document.getElementById("successful-wounds");
-const failedSaveBox = document.getElementById("failed-saves");
-const HitDice = document.querySelector(".hit-box");
-const WoundDice = document.querySelector(".wound-box");
-const SaveDice = document.querySelector(".save-box");
-const rr1hBtn = document.getElementById("rr1-hit");
-const rr1wBtn = document.getElementById("rr1-wnd");
-const rrAhBtn = document.getElementById("rrA-hit");
-const rrAwBtn = document.getElementById("rrA-wnd");
-const avgHits = document.getElementById("average-hits");
-const avgWounds = document.getElementById("average-wounds");
-const avgSaves = document.getElementById("average-saves");
-const fnp5Btn = document.getElementById("fnp5-btn");
-const fnp6Btn = document.getElementById("fnp6-btn");
-const fnpText = document.getElementById("fnp-text");
 
 // Te funkcje nie zależą od stanu aplikacji, można je spokojnie przenieść do innego pliku
 function dice() {
@@ -78,11 +63,22 @@ class DiceStats {
 
     return false;
   }
+
+  sumArrays(sumWith) {
+    // jeśli masz kilka arrayów, np. [1,2,3],['a','b','c'] to efektem zip jest [[1,'a'],[2,'b'],[3,'c']]
+    // z kolei sum, to po prostu suma elementów tablicy, czyli _.sum([1,2,3]) = 1 + 2 + 3 = 6
+    // Nie trzeba robić dodatkowych testów, wyniki będzie miał zawsze tyle elementów, co mniejsza tablica
+     this.data = _.zip(this.data, sumWith).map(_.sum);
+  }
+
+  dataCleanUp() {
+    this.data.fill(0, 0, this.uiInputElement.value);
+  }
 }
 
 // ------------------------ Temporary data block ------------------------
 
-const DICES = {
+export const DICES = {
  Hit: 'Hit',
  Wound: 'Wound',
  Save: 'Save'
@@ -100,7 +96,7 @@ const DICES_STATS = {
 
 // ------------------------ Roll Functionality ------------------------
 
-function roll(param) {
+export function roll(param) {
   /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   --expected()--
   Nie wiem czy dobrze rozumiem, ale ten call do 'expected' chyba nie jest potrzebny,
@@ -138,14 +134,14 @@ function updateUI(param, diceStats) {
   }
 
   diceStats.uiOutputElement.innerHTML = `<p>
-    ${data[1]}x <img src="img/dice-1.png" class="dice" /> ${data[2]}x
-    <img src="img/dice-2.png" class="dice" /> ${data[3]}x
-    <img src="img/dice-3.png" class="dice" />
+    ${data[1]}x <img src="../img/dice-1.png" class="dice" /> ${data[2]}x
+    <img src="../img/dice-2.png" class="dice" /> ${data[3]}x
+    <img src="../img/dice-3.png" class="dice" />
     </p>
     <p>
-    ${data[4]}x <img src="img/dice-4.png" class="dice" /> ${data[5]}x
-    <img src="img/dice-5.png" class="dice" /> ${data[6]}x
-    <img src="img/dice-6.png" class="dice" />
+    ${data[4]}x <img src="../img/dice-4.png" class="dice" /> ${data[5]}x
+    <img src="../img/dice-5.png" class="dice" /> ${data[6]}x
+    <img src="../img/dice-6.png" class="dice" />
     </p>`;
 }
 
@@ -177,16 +173,16 @@ const differnceText = function (param, type) {
 
 // ------------------------ Re-Roll 1s functionality ------------------------
 
-const reRoll1 = function (param) {
+export function reRoll1(param) {
   const diceStats = DICES_STATS[param];
   const { data } = diceStats;
   const newRolls = roller(data[1]);
 
   data[1] = 0;
-  diceStats.data = sumArray2(data, newRolls);
+  diceStats.sumArrays(newRolls);
 
   updateUI(param, diceStats);
-};
+}
 
 /*
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -207,48 +203,43 @@ Jest dużo metod, którymi możesz osiągnąć ten sam efekt,
 dla przykładu
  */
 
-function sumArray(arr1, arr2) {
-  let sum = 0;
-
-  //Dodatkowo sprawdzenie Math.min, ponieważ jeśli array byłyby różnej długości, to by poleciał Exception
-  for (let i = 0; i < Math.min(arr1.length, arr2.length); i++) {
-    sum += arr1[i] + arr2[i];
-  }
-
-  return sum
-}
+// function sumArray(arr1, arr2) {
+//   let sum = 0;
+//
+//   //Dodatkowo sprawdzenie Math.min, ponieważ jeśli array byłyby różnej długości, to by poleciał Exception
+//   for (let i = 0; i < Math.min(arr1.length, arr2.length); i++) {
+//     sum += arr1[i] + arr2[i];
+//   }
+//
+//   return sum
+// }
 
 /*
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 Popularną libką do operacji na obiektach i tablicach jest lodash
  */
 
-function sumArray2(arr1, arr2) {
-  // jeśli masz kilka arrayów, np. [1,2,3],['a','b','c'] to efektem zip jest [[1,'a'],[2,'b'],[3,'c']]
-  // z kolei sum, to po prostu suma elementów tablicy, czyli _.sum([1,2,3]) = 1 + 2 + 3 = 6
-  // Nie trzeba robić dodatkowych testów, wyniki będzie miał zawsze tyle elementów, co mniejsza tablica
-  return _.zip(arr1, arr2).map(_.sum)
-}
+// function sumArray2(arr1, arr2) {
+//   // jeśli masz kilka arrayów, np. [1,2,3],['a','b','c'] to efektem zip jest [[1,'a'],[2,'b'],[3,'c']]
+//   // z kolei sum, to po prostu suma elementów tablicy, czyli _.sum([1,2,3]) = 1 + 2 + 3 = 6
+//   // Nie trzeba robić dodatkowych testów, wyniki będzie miał zawsze tyle elementów, co mniejsza tablica
+//   return _.zip(arr1, arr2).map(_.sum)
+// }
 
 // ------------------------ Re-Roll all fails functionality ------------------------
 
-const reRollA = function (param) {
+export function reRollA(param) {
   const diceStats = DICES_STATS[param];
   /* Możesz sobie wybrać pola, które Cię interesują za jednym razem */
-  const {count, data, uiInputElement} = diceStats;
+  const { count } = diceStats;
   const newRolls = roller(count[1]);
 
   count[1] = 0
-  dataCleanUp(uiInputElement, data);
-  diceStats.data = sumArray2(data, newRolls);
-  /*
-    tutaj jest problem, bo 'data' jest referencją do pola w obiekcie i 'data = sumArray2(tempHitData, newRolls)'
-    nie zmieniłoby 'data' wewnątrz 'diceStats', ewentualnie zadziałałoby
-    'data.splice(0, Infinity, ...sumArray2(data, newRolls))'
-  */
+  diceStats.dataCleanUp();
+  diceStats.sumArrays(newRolls);
 
   updateUI(param, diceStats);
-};
+}
 
 /*
  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -261,77 +252,16 @@ const reRollA = function (param) {
 //   }
 // };
 
-function dataCleanUp(num, data) {
-  data.fill(0, 0, num.value);
-}
+// function dataCleanUp(num, data) {
+//   data.fill(0, 0, num.value);
+// }
 
 // ------------------------ 5+++ FNP functionality ------------------------
 
-const FNP = function (val) {
+export function FNP(val) {
   const { count } = DICES_STATS[DICES.Save]
   const tempFNPData = roller(count[1]);
   console.log("FNP rolls:" + tempFNPData);
   const tempFNPCount = counter(tempFNPData, val);
   fnpText.textContent = `${tempFNPCount[1]} DMG goes through`;
-};
-
-// ------------------------ Event handlers ------------------------
-/*
-Używaj jak najmniej hardcoded strings, jeśli będziesz coś zmieniał, to będziesz musiał latać po całej aplikacji
-Podpinanie event handlerów możesz faktycznie przenieść do innego pliku
-*/
-const CLICK = 'click';
-
-rollHitBtn.addEventListener(CLICK, function () {
-  roll(DICES.Hit);
-});
-rollWndBtn.addEventListener(CLICK, function () {
-  roll(DICES.Wound);
-});
-rollSaveBtn.addEventListener(CLICK, function () {
-  roll(DICES.Save);
-});
-rr1hBtn.addEventListener(CLICK, function () {
-  reRoll1(DICES.Hit);
-});
-rr1wBtn.addEventListener(CLICK, function () {
-  reRoll1(DICES.Wound);
-});
-fnp5Btn.addEventListener(CLICK, function () {
-  FNP(5);
-});
-fnp6Btn.addEventListener(CLICK, function () {
-  FNP(6);
-});
-rrAhBtn.addEventListener(CLICK, function () {
-  reRollA(DICES.Hit);
-});
-rrAwBtn.addEventListener(CLICK, function () {
-  reRollA(DICES.Wound);
-});
-
-// ------------------------ Modal button functionality ------------------------
-
-const modal = document.querySelector(".modal");
-const overlay = document.querySelector(".overlay");
-const btnCloseModal = document.querySelector(".close-modal");
-const btnOpenModal = document.getElementById("help");
-
-btnOpenModal.addEventListener(CLICK, clickHandlerOpen);
-overlay.addEventListener(CLICK, clickHandlerClose);
-
-document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape" && !modal.classList.contains("hidden")) {
-    clickHandlerClose();
-  }
-});
-
-function clickHandlerOpen() {
-  modal.classList.remove("hidden");
-  overlay.classList.remove("hidden");
-}
-
-function clickHandlerClose() {
-  modal.classList.add("hidden");
-  overlay.classList.add("hidden");
 }
